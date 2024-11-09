@@ -34,6 +34,7 @@ def home():
     """
     return RedirectResponse(url="/docs/")
 
+
 # Route to get all assets stored in the list.
 @app.get("/assets", response_model=List[users.schemas.Asset])
 async def get_assets(db: Session = Depends(get_db)):
