@@ -18,9 +18,23 @@ export default {
     };
   },
   async mounted() {
+    const token = "2906bad1fa1ee07630bf4029750872eda6a5c0e3b118cf5aa";
+    
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-    const response = await fetch('${apiUrl}/assets');
-    this.data = await response.json();
+    try {
+      const response = await fetch(`${apiUrl}/assets`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`, //localStorage.getItem('token') if token is dynamic
+      },
+      });
+      if (response.status == 401){
+        throw new Error(`Status: ${response.status}`);
+      }
+      this.data = await response.json();
+    } catch (error) {
+      console.error("Error fetching assets:", error);
+    }
   },
   methods: {
     navigateTo(route) {

@@ -19,7 +19,7 @@ export default {
   },
   async mounted() {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-    const response = await fetch('${apiUrl}/insights');
+    const response = await fetch(`${apiUrl}/insights`);
     this.data = await response.json();
   },
   methods: {
