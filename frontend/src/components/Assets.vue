@@ -17,20 +17,20 @@ export default {
       data: [],
     };
   },
-  async mounted() {
-    const token = "2906bad1fa1ee07630bf4029750872eda6a5c0e3b118cf5aa";
+  async mounted() {    
+    const token = "2906bad1fa1ee07630bf4029750872eda6a5c0e3b118cf5a";
     
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
     try {
-      const response = await fetch(`${apiUrl}/assets`, {
+      const response = await fetch(`${apiUrl}/proxy/assets`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`, //localStorage.getItem('token') if token is dynamic
       },
       });
-      if (response.status == 401){
+      if (response.status != 200){
         throw new Error(`Status: ${response.status}`);
-      }
+      }      
       this.data = await response.json();
     } catch (error) {
       console.error("Error fetching assets:", error);
