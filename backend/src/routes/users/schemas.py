@@ -19,6 +19,7 @@ class AssetBase(BaseModel):
     title: str
     status: str
     created_at: datetime
+    image_path: str
 
 class CampaignBase(BaseModel):
     service_campaign_id: int

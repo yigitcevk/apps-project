@@ -1,16 +1,18 @@
 from sqlalchemy import Column, Integer, String, Boolean, Float, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from src.config.database import Base
+import random
 
 
 class Asset(Base):
     __tablename__ = "assets"
 
     id = Column(Integer, primary_key=True, index=True)
-    service_asset_id = Column(Integer)
+    service_asset_id = Column(Integer, unique=True, default=lambda: random.randint(100000, 999999))
     title = Column(String, index=True)
     status = Column(String)
     created_at = Column(DateTime)
+    image_path = Column(String) 
 
     campaign_creatives = relationship("CampaignCreative", back_populates="asset")
 
