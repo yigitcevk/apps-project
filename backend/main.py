@@ -56,9 +56,9 @@ scheduler.start()
 
 # Update asset status as a background task
 def update_asset_status(db: Session):
-    assets = db.query(users.models.Asset).filter(users.models.Asset.status == "processing").all()
+    assets = db.query(users.models.Asset).filter(users.models.Asset.status == "Processing").all()
     for asset in assets:
-        new_status = random.choice(["eligible", "error"])  # Randomly assign eligible or error
+        new_status = random.choice(["Eligible", "Error"])  # Randomly assign eligible or error
         asset.status = new_status
         db.commit()
         db.refresh(asset)
