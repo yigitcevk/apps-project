@@ -5,7 +5,7 @@ from starlette.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 import httpx # asenkron
 import shutil
-from datetime import datetime
+from datetime import datetime, timedelta
 import os, random
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -60,11 +60,55 @@ def call_update_status_api():
                 print("Campaign Creative status update triggered successfully.")
             else:
                 print(f"Failed to trigger Campaign Creative status update. Status: {response2.status_code}")
+        
+        db_generator = get_db()
+        try:
+            db = next(db_generator)  
+            handle_insights(db) 
+        finally:
+            db_generator.close()
+
     except Exception as e:
         print(f"Error while calling update_status API: {e}")
 
 scheduler.start()
 
+# Background task for handling insights.
+def handle_insights(db: Session):
+    now = datetime.now()
+
+    # 10 minute
+    active_campaigns = db.query(models.Campaign).filter(models.Campaign.active == True).all()
+    for campaign in active_campaigns:
+        time_since_creation = now - campaign.created_at
+        if time_since_creation > timedelta(minutes=10):
+            creatives = db.query(models.CampaignCreative).filter(
+                models.CampaignCreative.campaign_id == campaign.id
+            ).all()
+
+            for creative in creatives:
+                if not db.query(models.Insight).filter(models.Insight.campaign_creative_id == creative.id).first():
+                    new_insight = models.Insight(
+                        campaign_creative_id=creative.id,
+                        impressions=random.randint(100, 1000),
+                        cpi=round(random.uniform(0.1, 1.0), 2),
+                        ctr=round(random.uniform(0.01, 0.1), 2),
+                        cpm=round(random.uniform(1.0, 10.0), 2),
+                        ipm=round(random.uniform(0.1, 1.0), 2),
+                        created_at=datetime.now(),
+                    )
+                    db.add(new_insight)
+                    db.commit()
+                    print(f"Insight {new_insight.id} created for CampaignCreative {creative.id}")
+
+    # 30 Minute
+    insights = db.query(models.Insight).all()
+    for insight in insights:
+        time_since_creation = now - insight.created_at
+        if time_since_creation > timedelta(minutes=30):
+            db.delete(insight)
+            db.commit()
+            print(f"Insight {insight.id} deleted after 30 minutes.")
 
 # Background Task for Asset Status
 def update_asset_status(db: Session):
@@ -120,7 +164,7 @@ async def proxy_get_campaigns():
             raise HTTPException(status_code=500, detail=f"Error communicating with internal API: {str(e)}")
 
 # Proxy route to get all insights.
-@app.get("/proxy/insights", response_model=List[users.schemas.Insight], dependencies=[Depends(auth.verify_token)])
+@app.get("/proxy/insights/all", response_model=List[users.schemas.Insight], dependencies=[Depends(auth.verify_token)])
 async def proxy_get_insights():
     internal_endpoint = "http://localhost:8000/internal/insights"
     async with httpx.AsyncClient() as client:
@@ -221,7 +265,7 @@ async def get_insights(db: Session = Depends(get_db)):
 
 # Route to get all campaign_creatives.
 @app.get("/internal/campaign_creatives", response_model=List[users.schemas.CampaignCreative])
-async def get_insights(db: Session = Depends(get_db)):
+async def get_campaign_creatives(db: Session = Depends(get_db)):
     return db.query(users.models.CampaignCreative).all()
 
 # Route to upload an asset.
