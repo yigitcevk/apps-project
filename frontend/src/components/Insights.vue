@@ -2,11 +2,30 @@
   <div class="page-container">
     <button class="navigation-button" @click="navigateTo('/dashboard')">Return to Dashboard</button>
     <h1 class="page-title">Insights</h1>
-    <ul class="data-list">
-      <li v-for="item in data" :key="item.id">
-        {{ JSON.stringify(item, null, 2) }}
-      </li>
-    </ul>
+    <table class="insights-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Creative ID</th>
+          <th>Impressions</th>
+          <th>CPI</th>
+          <th>CTR</th>
+          <th>CPM</th>
+          <th>IPM</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="item in data" :key="item.id">
+          <td>{{ item.id }}</td>
+          <td>{{ item.campaign_creative_id }}</td>
+          <td>{{ item.impressions }}</td>
+          <td>{{ item.cpi }}</td>
+          <td>{{ item.ctr }}</td>
+          <td>{{ item.cpm }}</td>
+          <td>{{ item.ipm }}</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </template>
 
@@ -18,11 +37,27 @@ export default {
     };
   },
   async mounted() {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-    const response = await fetch(`${apiUrl}/proxy/insights`);
-    this.data = await response.json();
+    await this.fetchInsights();
   },
   methods: {
+    async fetchInsights() {
+      const token = "2906bad1fa1ee07630bf4029750872eda6a5c0e3b118cf5a";
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      try {
+        const response = await fetch(`${apiUrl}/proxy/insights`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to fetch insights. Status: ${response.status}`);
+        }
+        this.data = await response.json();
+      } catch (error) {
+        console.error("Error fetching insights:", error);
+      }
+    },
     navigateTo(route) {
       this.$router.push(route);
     },
@@ -65,20 +100,29 @@ export default {
   background-color: #45a049;
 }
 
-.data-list {
-  list-style-type: none;
-  padding: 0;
-  margin-top: 20px;
+.insights-table {
   width: 80%;
+  border-collapse: collapse;
+  margin-top: 20px;
 }
 
-.data-list li {
-  font-size: 16px;
+.insights-table th,
+.insights-table td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
   color: #fff;
+}
+
+.insights-table th {
+  background-color: #555;
+}
+
+.insights-table tr:nth-child(even) {
   background-color: #333;
-  padding: 15px;
-  margin-bottom: 10px;
-  border-radius: 5px;
-  white-space: pre-wrap;
+}
+
+.insights-table tr:hover {
+  background-color: #444;
 }
 </style>

@@ -45,10 +45,23 @@ export default {
       data: [],
       selectedFile: null,
       selectedFileName: "Select Image",
+      intervalId: null,
     };
   },
   async mounted() {
     await this.fetchAssets();
+
+    this.intervalId = setInterval(async () => {
+      console.log("Refreshing asset statuses...");
+      await this.fetchAssets();
+    }, 60000); // 1 minute
+
+  },
+  beforeUnmount() {
+    // Clear the interval to avoid memory leaks
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+    }
   },
   methods: {
     async fetchAssets() {
