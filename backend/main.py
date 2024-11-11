@@ -36,6 +36,10 @@ app.add_middleware(
 UPLOAD_DIR = "./apps/uploaded_assets/"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+# Status
+CAMPAIGN_CREATIVE_STATUSES = ["Pending", "Approved", "Rejected", "Serving", "Completed", "Removed"]
+ASSET_STATUSES = ["Processing", "Eligible", "Error"]
+
 
 # Start scheduler
 scheduler = BackgroundScheduler()
@@ -43,26 +47,43 @@ scheduler = BackgroundScheduler()
 def call_update_status_api():
     try:
         with httpx.Client() as client:
+            # schedule asset status
             response1 = client.get("http://localhost:8000/background/assets/all")
             if response1.status_code == 200:
                 print("Asset status update triggered successfully.")
             else:
                 print(f"Failed to trigger asset status update. Status: {response1.status_code}")
+
+            # schedule campaign_creative status
+            response2 = client.get("http://localhost:8000/background/campaign_creatives/all")
+            if response2.status_code == 200:
+                print("Campaign Creative status update triggered successfully.")
+            else:
+                print(f"Failed to trigger Campaign Creative status update. Status: {response2.status_code}")
     except Exception as e:
         print(f"Error while calling update_status API: {e}")
 
 scheduler.start()
 
 
-# Update asset status as a background task
+# Background Task for Asset Status
 def update_asset_status(db: Session):
     assets = db.query(users.models.Asset).filter(users.models.Asset.status == "Processing").all()
     for asset in assets:
-        new_status = random.choice(["Eligible", "Error"])  # Randomly assign eligible or error
+        new_status = random.choice(ASSET_STATUSES[1:])  # Randomly assign eligible or error
         asset.status = new_status
         db.commit()
         db.refresh(asset)
     print("Asset statuses updated.")
+
+# Background Task for CampaignCreative Status
+def update_campaign_creative_status(db: Session):
+    campaign_creatives = db.query(users.models.CampaignCreative).filter(users.models.CampaignCreative.status == "Pending").all()
+    for creative in campaign_creatives:
+        creative.status = random.choice(CAMPAIGN_CREATIVE_STATUSES[1:]) # Randomly assign others
+        db.commit()
+        db.refresh(creative)
+    print("CampaignCreative statuses updated.")
 
 
 # Redirect / -> Swagger-UI documentation
@@ -111,7 +132,7 @@ async def proxy_get_insights():
 
 # Proxy route to get all campaign_creatives.
 @app.get("/proxy/campaign_creatives", response_model=List[users.schemas.CampaignCreative], dependencies=[Depends(auth.verify_token)])
-async def proxy_get_insights():
+async def proxy_get_campaign_creatives():
     internal_endpoint = "http://localhost:8000/internal/campaign_creatives"
     async with httpx.AsyncClient() as client:
         try:
@@ -134,13 +155,25 @@ async def proxy_upload_asset(file: UploadFile = File(...)):
         except httpx.RequestError as e:
             raise HTTPException(status_code=500, detail=f"Error communicating with internal API: {str(e)}")
         
-# Proxy route to edit a campaign.
-@app.put("/proxy/campaigns/{campaign_id}", response_model=users.schemas.Campaign, dependencies=[Depends(auth.verify_token)])
-async def proxy_edit_campaign(campaign_id: int, campaign: users.schemas.CampaignBase):
-    internal_endpoint = "http://localhost:8000/internal/campaigns/" + str(campaign_id)
+# Proxy route to upload an campaign_Creative.
+@app.post("/proxy/campaign_creatives", response_model=users.schemas.CampaignCreative, dependencies=[Depends(auth.verify_token)])
+async def proxy_upload_campaign_creative(campaign_creative: users.schemas.CampaignCreativeBase):
+    internal_endpoint = "http://localhost:8000/internal/campaign_creatives"
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.put(internal_endpoint, json=campaign.dict())
+            response = await client.post(internal_endpoint, json=campaign_creative.dict())
+            return response.json()
+        except httpx.RequestError as e:
+            raise HTTPException(status_code=500, detail=f"Error communicating with internal API: {str(e)}")
+        
+# Proxy route to edit a campaign.
+@app.put("/proxy/campaigns/{campaign_id}/status", response_model=users.schemas.Campaign, dependencies=[Depends(auth.verify_token)])
+async def proxy_edit_campaign(campaign_id: int, payload: dict):
+    # fix the payload
+    internal_endpoint = "http://localhost:8000/internal/campaigns/" + str(campaign_id) + "/status"
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.put(internal_endpoint, json=payload)
             return response.json()
         except httpx.RequestError as e:
             raise HTTPException(status_code=500, detail=f"Error communicating with internal API: {str(e)}")
@@ -149,6 +182,17 @@ async def proxy_edit_campaign(campaign_id: int, campaign: users.schemas.Campaign
 @app.delete("/proxy/assets/{asset_id}", response_model=dict, dependencies=[Depends(auth.verify_token)])
 async def proxy_delete_asset(asset_id: int):
     internal_endpoint = "http://localhost:8000/internal/assets/" + str(asset_id)
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.delete(internal_endpoint)
+            return response.json()
+        except httpx.RequestError as e:
+            raise HTTPException(status_code=500, detail=f"Error communicating with internal API: {str(e)}")
+
+# Proxy route to delete an campaign_creative.
+@app.delete("/proxy/campaign_creatives/{creative_id}", response_model=dict, dependencies=[Depends(auth.verify_token)])
+async def proxy_delete_campaign_creative(creative_id: int):
+    internal_endpoint = "http://localhost:8000/internal/campaign_creatives/" + str(creative_id)
     async with httpx.AsyncClient() as client:
         try:
             response = await client.delete(internal_endpoint)
@@ -219,23 +263,53 @@ async def delete_asset(asset_id: int, db: Session = Depends(get_db)):
     return {"detail": "Asset deleted successfully"}
 
 # Route to edit a campaign
-@app.put("/internal/campaigns/{campaign_id}", response_model=users.schemas.Campaign)
-async def edit_campaign(campaign_id: int, campaign: users.schemas.CampaignBase, db: Session = Depends(get_db)):
+@app.put("/internal/campaigns/{campaign_id}/status", response_model=users.schemas.Campaign)
+async def edit_campaign(campaign_id: int, payload: dict, db: Session = Depends(get_db)):
+    active = payload.get("active")
     existing_campaign = db.query(users.models.Campaign).filter(users.models.Campaign.id == campaign_id).first()
     if not existing_campaign:
         raise HTTPException(status_code=404, detail="Campaign not found")
     
-    for key, value in campaign.dict().items():
-        setattr(existing_campaign, key, value)
+    existing_campaign.active = active
     
     db.commit()
     db.refresh(existing_campaign)
     return existing_campaign
 
-# Route to check assets states.
+# Route to add a CampaigmCreative
+@app.post("/internal/campaign_creatives", response_model=users.schemas.CampaignCreative)
+async def create_campaign_creative(campaign_creative: users.schemas.CampaignCreativeBase, db: Session = Depends(get_db)):
+    new_creative = models.CampaignCreative(
+        campaign_id=campaign_creative.campaign_id,
+        asset_id=campaign_creative.asset_id,
+        status="Pending",
+        created_at=datetime.now(),
+    )
+    db.add(new_creative)
+    db.commit()
+    db.refresh(new_creative)
+    return new_creative
+
+# Route to delete a CampaignCreative
+@app.delete("/internal/campaign_creatives/{creative_id}", response_model=dict)
+async def delete_campaign_creative(creative_id: int, db: Session = Depends(get_db)):
+    creative = db.query(users.models.CampaignCreative).filter(users.models.CampaignCreative.id == creative_id).first()
+    if not creative:
+        raise HTTPException(status_code=404, detail="CampaignCreative not found")
+    db.delete(creative)
+    db.commit()
+    return {"detail": "CampaignCreative deleted successfully"}
+
+# Route to trigger assets states.
 @app.get("/background/assets/all")
 async def trigger_asset_status_update(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     background_tasks.add_task(update_asset_status, db)
     return {"message": "Background status update started."}
+
+# # Route to trigger campaign_Creatives states.
+@app.get("/background/campaign_creatives/all")
+async def trigger_campaign_creative_status_update(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    background_tasks.add_task(update_campaign_creative_status, db)
+    return {"message": "Background status update for CampaignCreatives started."}
 
 

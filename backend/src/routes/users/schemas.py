@@ -8,24 +8,26 @@ class InsightBase(BaseModel):
     ctr: float
     cpm: float
     ipm: float
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
 class CampaignCreativeBase(BaseModel):
+    campaign_id: int
+    asset_id: int
     status: str
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
 class AssetBase(BaseModel):
     service_asset_id: int
     title: str
     status: str
-    created_at: datetime
+    created_at: Optional[datetime] = None
     image_path: str
 
 class CampaignBase(BaseModel):
     service_campaign_id: int
     title: str
     active: bool
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
 class Asset(AssetBase):
     id: int
@@ -48,8 +50,6 @@ class Insight(InsightBase):
 
 class CampaignCreative(CampaignCreativeBase):
     id: int
-    campaign_id: int
-    asset_id: int
     
     class Config:
         orm_mode = True
