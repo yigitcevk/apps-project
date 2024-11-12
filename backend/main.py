@@ -48,14 +48,14 @@ def call_update_status_api():
     try:
         with httpx.Client() as client:
             # schedule asset status
-            response1 = client.get("http://localhost:8000/background/assets/all")
+            response1 = client.get("http://backend:8000/background/assets/all")
             if response1.status_code == 200:
                 print("Asset status update triggered successfully.")
             else:
                 print(f"Failed to trigger asset status update. Status: {response1.status_code}")
 
             # schedule campaign_creative status
-            response2 = client.get("http://localhost:8000/background/campaign_creatives/all")
+            response2 = client.get("http://backend:8000/background/campaign_creatives/all")
             if response2.status_code == 200:
                 print("Campaign Creative status update triggered successfully.")
             else:
@@ -142,9 +142,11 @@ def home():
 
 
 # Proxy route to get all assets stored in the list.
-@app.get("/proxy/assets", response_model=List[users.schemas.Asset], dependencies=[Depends(auth.verify_token)])
+@app.get("/asset/all", response_model=List[users.schemas.Asset], dependencies=[Depends(auth.verify_token)])
 async def proxy_get_assets():
-    internal_endpoint = "http://localhost:8000/internal/assets"
+    print("aaaaaaaaaaaaaaaaaaa")
+    internal_endpoint = "http://backend:8000/internal/assets"
+    print("bbbbbbbbbbbbbbbb")
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(internal_endpoint)
@@ -153,9 +155,9 @@ async def proxy_get_assets():
             raise HTTPException(status_code=500, detail=f"Error communicating with internal API: {str(e)}")
 
 # Proxy route to get all campaigns stored in the list.
-@app.get("/proxy/campaigns", response_model=List[users.schemas.Campaign], dependencies=[Depends(auth.verify_token)])
+@app.get("/campaign/all", response_model=List[users.schemas.Campaign], dependencies=[Depends(auth.verify_token)])
 async def proxy_get_campaigns():
-    internal_endpoint = "http://localhost:8000/internal/campaigns"
+    internal_endpoint = "http://backend:8000/internal/campaigns"
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(internal_endpoint)
@@ -164,9 +166,9 @@ async def proxy_get_campaigns():
             raise HTTPException(status_code=500, detail=f"Error communicating with internal API: {str(e)}")
 
 # Proxy route to get all insights.
-@app.get("/proxy/insights/all", response_model=List[users.schemas.Insight], dependencies=[Depends(auth.verify_token)])
+@app.get("/insight/all", response_model=List[users.schemas.Insight], dependencies=[Depends(auth.verify_token)])
 async def proxy_get_insights():
-    internal_endpoint = "http://localhost:8000/internal/insights"
+    internal_endpoint = "http://backend:8000/internal/insights"
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(internal_endpoint)
@@ -175,9 +177,9 @@ async def proxy_get_insights():
             raise HTTPException(status_code=500, detail=f"Error communicating with internal API: {str(e)}")
 
 # Proxy route to get all campaign_creatives.
-@app.get("/proxy/campaign_creatives", response_model=List[users.schemas.CampaignCreative], dependencies=[Depends(auth.verify_token)])
+@app.get("/campaign-creative/all", response_model=List[users.schemas.CampaignCreative], dependencies=[Depends(auth.verify_token)])
 async def proxy_get_campaign_creatives():
-    internal_endpoint = "http://localhost:8000/internal/campaign_creatives"
+    internal_endpoint = "http://backend:8000/internal/campaign_creatives"
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(internal_endpoint)
@@ -186,9 +188,9 @@ async def proxy_get_campaign_creatives():
             raise HTTPException(status_code=500, detail=f"Error communicating with internal API: {str(e)}")
 
 # Proxy route to upload an asset.
-@app.post("/proxy/assets", response_model=users.schemas.Asset, dependencies=[Depends(auth.verify_token)])
+@app.post("/asset/create", response_model=users.schemas.Asset, dependencies=[Depends(auth.verify_token)])
 async def proxy_upload_asset(file: UploadFile = File(...)):
-    internal_endpoint = "http://localhost:8000/internal/assets"
+    internal_endpoint = "http://backend:8000/internal/assets"
     async with httpx.AsyncClient() as client:
         try:
             formData = {
@@ -200,9 +202,9 @@ async def proxy_upload_asset(file: UploadFile = File(...)):
             raise HTTPException(status_code=500, detail=f"Error communicating with internal API: {str(e)}")
         
 # Proxy route to upload an campaign_Creative.
-@app.post("/proxy/campaign_creatives", response_model=users.schemas.CampaignCreative, dependencies=[Depends(auth.verify_token)])
+@app.post("/campaign-creative/assign", response_model=users.schemas.CampaignCreative, dependencies=[Depends(auth.verify_token)])
 async def proxy_upload_campaign_creative(campaign_creative: users.schemas.CampaignCreativeBase):
-    internal_endpoint = "http://localhost:8000/internal/campaign_creatives"
+    internal_endpoint = "http://backend:8000/internal/campaign_creatives"
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(internal_endpoint, json=campaign_creative.dict())
@@ -211,10 +213,10 @@ async def proxy_upload_campaign_creative(campaign_creative: users.schemas.Campai
             raise HTTPException(status_code=500, detail=f"Error communicating with internal API: {str(e)}")
         
 # Proxy route to edit a campaign.
-@app.put("/proxy/campaigns/{campaign_id}/status", response_model=users.schemas.Campaign, dependencies=[Depends(auth.verify_token)])
-async def proxy_edit_campaign(campaign_id: int, payload: dict):
+@app.put("/campaign/{id}", response_model=users.schemas.Campaign, dependencies=[Depends(auth.verify_token)])
+async def proxy_edit_campaign(id: int, payload: dict):
     # fix the payload
-    internal_endpoint = "http://localhost:8000/internal/campaigns/" + str(campaign_id) + "/status"
+    internal_endpoint = "http://backend:8000/internal/campaigns/" + str(id) + "/status"
     async with httpx.AsyncClient() as client:
         try:
             response = await client.put(internal_endpoint, json=payload)
@@ -223,9 +225,9 @@ async def proxy_edit_campaign(campaign_id: int, payload: dict):
             raise HTTPException(status_code=500, detail=f"Error communicating with internal API: {str(e)}")
 
 # Proxy route to delete an asset.
-@app.delete("/proxy/assets/{asset_id}", response_model=dict, dependencies=[Depends(auth.verify_token)])
-async def proxy_delete_asset(asset_id: int):
-    internal_endpoint = "http://localhost:8000/internal/assets/" + str(asset_id)
+@app.delete("/asset/{id}", response_model=dict, dependencies=[Depends(auth.verify_token)])
+async def proxy_delete_asset(id: int):
+    internal_endpoint = "http://backend:8000/internal/assets/" + str(id)
     async with httpx.AsyncClient() as client:
         try:
             response = await client.delete(internal_endpoint)
@@ -234,12 +236,12 @@ async def proxy_delete_asset(asset_id: int):
             raise HTTPException(status_code=500, detail=f"Error communicating with internal API: {str(e)}")
 
 # Proxy route to delete an campaign_creative.
-@app.delete("/proxy/campaign_creatives/{creative_id}", response_model=dict, dependencies=[Depends(auth.verify_token)])
-async def proxy_delete_campaign_creative(creative_id: int):
-    internal_endpoint = "http://localhost:8000/internal/campaign_creatives/" + str(creative_id)
+@app.post("/campaign-creative/unassign", response_model=dict, dependencies=[Depends(auth.verify_token)])
+async def proxy_delete_campaign_creative(id: int):
+    internal_endpoint = "http://backend:8000/internal/campaign_creatives/" + str(id)
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.delete(internal_endpoint)
+            response = await client.post(internal_endpoint, data={})
             return response.json()
         except httpx.RequestError as e:
             raise HTTPException(status_code=500, detail=f"Error communicating with internal API: {str(e)}")

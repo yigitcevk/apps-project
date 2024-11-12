@@ -67,8 +67,10 @@ export default {
     async fetchAssets() {
       const token = "2906bad1fa1ee07630bf4029750872eda6a5c0e3b118cf5a";
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      console.log(apiUrl);
+      
       try {
-        const response = await fetch(`${apiUrl}/proxy/assets`, {
+        const response = await fetch(`${apiUrl}/asset/all`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -104,7 +106,7 @@ export default {
       formData.append("file", this.selectedFile);
 
       try {
-        const response = await fetch(`${apiUrl}/proxy/assets`, {
+        const response = await fetch(`${apiUrl}/asset/create`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -129,7 +131,7 @@ export default {
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
       try {
-        const response = await fetch(`${apiUrl}/proxy/assets/${assetId}`, {
+        const response = await fetch(`${apiUrl}/asset/${assetId}`, {
           method: "DELETE",
           headers: {
             Authorization: `Bearer ${token}`,

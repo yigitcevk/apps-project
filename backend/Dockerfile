@@ -14,6 +14,7 @@ RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 COPY ./src /code/src
 COPY ./main.py /code/main.py
 
+EXPOSE 8000
 # Set the command to use fastapi run, which uses Uvicorn underneath
 # CMD ["fastapi", "run", "src/main.py", "--port", "80"]
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

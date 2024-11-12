@@ -94,7 +94,7 @@ export default {
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
       const token = "2906bad1fa1ee07630bf4029750872eda6a5c0e3b118cf5a";
       try {
-        const response = await fetch(`${apiUrl}/proxy/campaigns`, {
+        const response = await fetch(`${apiUrl}/campaign/all`, {
           method: "GET",
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -111,7 +111,7 @@ export default {
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
       const token = "2906bad1fa1ee07630bf4029750872eda6a5c0e3b118cf5a";
       try {
-        const response = await fetch(`${apiUrl}/proxy/assets`, {
+        const response = await fetch(`${apiUrl}/asset/all`, {
           method: "GET",
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -128,7 +128,7 @@ export default {
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
       const token = "2906bad1fa1ee07630bf4029750872eda6a5c0e3b118cf5a";
       try {
-        const response = await fetch(`${apiUrl}/proxy/campaign_creatives?campaign_id=${campaignId}`, {
+        const response = await fetch(`${apiUrl}/campaign-creative/all`, {
           method: "GET",
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -162,7 +162,7 @@ export default {
       const token = "2906bad1fa1ee07630bf4029750872eda6a5c0e3b118cf5a";
       
       try {
-        const response = await fetch(`${apiUrl}/proxy/campaign_creatives`, {
+        const response = await fetch(`${apiUrl}/campaign-creative/assign`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -190,8 +190,8 @@ export default {
       const token = "2906bad1fa1ee07630bf4029750872eda6a5c0e3b118cf5a";
       try {
         for (const creativeId of this.selectedCreatives) {
-          await fetch(`${apiUrl}/proxy/campaign_creatives/${creativeId}`, {
-            method: "DELETE",
+          await fetch(`${apiUrl}/campaign-creative/unassign`, {
+            method: "POST",
             headers: { Authorization: `Bearer ${token}` },
           });
         }
@@ -207,7 +207,7 @@ export default {
       console.log(this.currentCampaign.active);
       
       try {
-        const response = await fetch(`${apiUrl}/proxy/campaigns/${this.currentCampaign.id}/status`, {
+        const response = await fetch(`${apiUrl}/campaign/${this.currentCampaign.id}`, {
           method: "PUT",
           headers: {
             Authorization: `Bearer ${token}`,

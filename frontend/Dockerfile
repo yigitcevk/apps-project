@@ -16,4 +16,6 @@ COPY . .
 # Build the Vue.js application for production
 RUN npm run build
 
+EXPOSE 3000
+
 CMD ["npm", "run", "dev"]

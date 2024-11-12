@@ -56,7 +56,7 @@ export default {
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
       const token = "2906bad1fa1ee07630bf4029750872eda6a5c0e3b118cf5a";
       try {
-        const response = await fetch(`${apiUrl}/proxy/insights/all`, {
+        const response = await fetch(`${apiUrl}/insight/all`, {
           method: "GET",
           headers: { Authorization: `Bearer ${token}` },
         });
